@@ -1,37 +1,43 @@
-#include <SoftwareSerial.h>
 
 /* ports */
-int WRITE_INNER_PUMP;
-int WRITE_OUTER_PUMP;
-int READ_ECHO = 7;
-int WRITE_TRIGGER = 8;
-int RX = 2;
-int TX = 3;
+int WRITE_INNER_PUMP = 7;
+int WRITE_OUTER_PUMP = 2;
+int READ_ECHO = 12;
+int WRITE_TRIGGER = 13;
 
 /* variables */
 float THRESH = 0.5;
-float TANK_HEIGHT;
+float TANK_HEIGHT = 6; // cm
 float currLevel;
-float setPoint;
+float setPoint = 0; // cm
 float error;
 long duration;
 long distance;
-SoftwareSerial HM10(2, 3);
 
 void setup()
 {
     Serial.begin(9600);
-    HM10.begin(9600);
     pinMode(WRITE_INNER_PUMP, OUTPUT);
     pinMode(WRITE_OUTER_PUMP, OUTPUT);
     pinMode(READ_ECHO, INPUT);
     pinMode(WRITE_TRIGGER, OUTPUT);
+
+    /* turn pumps off */
+    digitalWrite(WRITE_INNER_PUMP, LOW);
+    digitalWrite(WRITE_OUTER_PUMP, LOW);
 }
 
 void loop()
 {
 
     /* read set point from bluetooth */
+
+    if (Serial.available())
+    {
+        delay(10);
+        const auto x = Serial.readString();
+        Serial.println(x);
+    }
 
     /* ****************************** */
 
@@ -53,18 +59,21 @@ void loop()
 
     if (abs(error) < THRESH)
     {
-        digitalWrite(WRITE_INNER_PUMP, LOW);
-        digitalWrite(WRITE_OUTER_PUMP, LOW);
+        // Serial.println("all pumps off!");
+        // digitalWrite(WRITE_INNER_PUMP, LOW);
+        // digitalWrite(WRITE_OUTER_PUMP, LOW);
     }
     else if (error > 0)
     {
-        digitalWrite(WRITE_INNER_PUMP, HIGH);
-        digitalWrite(WRITE_OUTER_PUMP, LOW);
+        // Serial.println("remove water!");
+        // digitalWrite(WRITE_INNER_PUMP, HIGH);
+        // digitalWrite(WRITE_OUTER_PUMP, LOW);
     }
     else
     {
-        digitalWrite(WRITE_INNER_PUMP, LOW);
-        digitalWrite(WRITE_OUTER_PUMP, HIGH);
+        // Serial.println("add water!");
+        // digitalWrite(WRITE_INNER_PUMP, LOW);
+        // digitalWrite(WRITE_OUTER_PUMP, HIGH);
     }
     /* ****************************** */
 
