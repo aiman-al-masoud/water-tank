@@ -6,16 +6,17 @@ int READ_ECHO = 12;
 int WRITE_TRIGGER = 13;
 
 /* variables */
-float THRESH = 0.5;
-float TANK_HEIGHT = 6; // cm
-float currLevel;
-float setPoint = 0; // cm
-float error;
-long duration;
-long distance;
+float THRESH = 1;    // cm
+float TANK_HEIGHT = 5.8; // cm
+float setPoint = 0;    // cm
 
 void setup()
 {
+
+     /* turn pumps off */
+    digitalWrite(WRITE_INNER_PUMP, LOW);
+    digitalWrite(WRITE_OUTER_PUMP, LOW);
+
     Serial.begin(9600);
     pinMode(WRITE_INNER_PUMP, OUTPUT);
     pinMode(WRITE_OUTER_PUMP, OUTPUT);
@@ -35,47 +36,71 @@ void loop()
     if (Serial.available())
     {
         delay(10);
-        const auto x = Serial.readString();
-        Serial.println(x);
+        auto x = Serial.readString().toFloat();
+        // Serial.println(x);
+        setPoint = x;
     }
 
     /* ****************************** */
 
     /* read current water level */
+    auto currLevel = averageReadWaterLevel();
 
+    /* ****************************** */
+
+    /* recompute error and control pumps */
+    auto error = currLevel - setPoint;
+    Serial.println(error);
+    // Serial.println(setPoint);
+
+
+    if (abs(error) < THRESH)
+    {
+        // Serial.println("all pumps off!");
+        digitalWrite(WRITE_INNER_PUMP, LOW);
+        digitalWrite(WRITE_OUTER_PUMP, LOW);
+    }
+    else if (error > 0)
+    {
+        // Serial.println("remove water!");
+        digitalWrite(WRITE_INNER_PUMP, HIGH);
+        digitalWrite(WRITE_OUTER_PUMP, LOW);
+    }
+    else
+    {
+        // Serial.println("add water!");
+        digitalWrite(WRITE_INNER_PUMP, LOW);
+        digitalWrite(WRITE_OUTER_PUMP, HIGH);
+    }
+    /* ****************************** */
+
+    delay(10);
+}
+
+float readWaterLevel()
+{
     digitalWrite(WRITE_TRIGGER, LOW);
     delayMicroseconds(2);
     digitalWrite(WRITE_TRIGGER, HIGH);
     delayMicroseconds(10);
     digitalWrite(WRITE_TRIGGER, LOW);
-    duration = pulseIn(READ_ECHO, HIGH);
-    distance = duration / 58.2;
-    currLevel = TANK_HEIGHT - distance;
+    auto duration = pulseIn(READ_ECHO, HIGH);
+    auto distance = duration / 58.2;
+    auto currLevel = TANK_HEIGHT - distance;
+    return currLevel;
+}
 
-    /* ****************************** */
+float averageReadWaterLevel()
+{
+    // int numberReadings = 20;
+    int numberReadings = 5;
+    float sum = 0;
 
-    /* recompute error and control pumps */
-    error = currLevel - setPoint;
-
-    if (abs(error) < THRESH)
+    for (int i = 0; i < numberReadings; i++)
     {
-        // Serial.println("all pumps off!");
-        // digitalWrite(WRITE_INNER_PUMP, LOW);
-        // digitalWrite(WRITE_OUTER_PUMP, LOW);
+        sum += readWaterLevel();
+        delay(1);
     }
-    else if (error > 0)
-    {
-        // Serial.println("remove water!");
-        // digitalWrite(WRITE_INNER_PUMP, HIGH);
-        // digitalWrite(WRITE_OUTER_PUMP, LOW);
-    }
-    else
-    {
-        // Serial.println("add water!");
-        // digitalWrite(WRITE_INNER_PUMP, LOW);
-        // digitalWrite(WRITE_OUTER_PUMP, HIGH);
-    }
-    /* ****************************** */
 
-    delay(50);
+    return sum / numberReadings;
 }
