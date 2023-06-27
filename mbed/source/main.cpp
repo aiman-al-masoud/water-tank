@@ -4,7 +4,6 @@
 #include "mbed-trace/mbed_trace.h"
 #include "platform/Callback.h"
 
-
 using mbed::callback;
 using namespace std::literals::chrono_literals;
 
@@ -29,8 +28,6 @@ public:
     /* setup authorization handlers */
     _set_point_char.setWriteAuthorizationCallback(
         this, &WaterTankService::authorize_client_write);
-    // _current_level_char.setWriteAuthorizationCallback(this,
-    // &WaterTankService::authorize_client_write);
   }
 
   void start(BLE &ble, events::EventQueue &event_queue) {
@@ -56,7 +53,7 @@ public:
            _current_level_char.getValueHandle());
 
     _event_queue->call_every(
-        1000ms, callback(this, &WaterTankService::increment_second));
+        1000ms, callback(this, &WaterTankService::check_current_level));
   }
 
   /* GattServer::EventHandler */
@@ -78,13 +75,10 @@ private:
 
     if (params.handle == _set_point_char.getValueHandle()) {
       printf(" (minute characteristic)\r\n");
-    }
-    // } else if (params.handle == _current_level_char.getValueHandle()) {
-    //     printf(" (second characteristic)\r\n");
-    // }
-    else {
+    } else {
       printf("\r\n");
     }
+
     printf("write operation: %u\r\n", params.writeOp);
     printf("offset: %u\r\n", params.offset);
     printf("length: %u\r\n", params.len);
@@ -174,7 +168,7 @@ private:
   /**
    * Increment the second counter.
    */
-  void increment_second(void) {
+  void check_current_level(void) {
     uint8_t second = 0;
     ble_error_t err = _current_level_char.get(*_server, second);
     if (err) {
@@ -187,30 +181,6 @@ private:
     err = _current_level_char.set(*_server, second);
     if (err) {
       printf("write of the second value returned error %u\r\n", err);
-      return;
-    }
-
-    if (second == 0) {
-      increment_minute();
-    }
-  }
-
-  /**
-   * Increment the minute counter.
-   */
-  void increment_minute(void) {
-    uint8_t minute = 0;
-    ble_error_t err = _set_point_char.get(*_server, minute);
-    if (err) {
-      printf("read of the minute value returned error %u\r\n", err);
-      return;
-    }
-
-    minute = (minute + 1) % 60;
-
-    err = _set_point_char.set(*_server, minute);
-    if (err) {
-      printf("write of the minute value returned error %u\r\n", err);
       return;
     }
   }
@@ -239,7 +209,7 @@ private:
               /* Value size */ sizeof(_value),
               /* Value capacity */ sizeof(_value),
               /* Properties */
-                  GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ |
+              GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ |
                   GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE |
                   GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY |
                   GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_INDICATE,
@@ -290,15 +260,14 @@ private:
      * @param[in] uuid The UUID of the characteristic.
      * @param[in] initial_value Initial value contained by the characteristic.
      */
-    ReadNotifyIndicateCharacteristic(const UUID &uuid,
-                                          const T &initial_value)
+    ReadNotifyIndicateCharacteristic(const UUID &uuid, const T &initial_value)
         : GattCharacteristic(
               /* UUID */ uuid,
               /* Initial value */ &_value,
               /* Value size */ sizeof(_value),
               /* Value capacity */ sizeof(_value),
               /* Properties */
-                  GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ |
+              GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ |
                   GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY |
                   GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_INDICATE,
               /* Descriptors */ nullptr,
@@ -338,7 +307,6 @@ private:
   };
 
   // ----------------------------
-
 
 private:
   GattServer *_server = nullptr;
