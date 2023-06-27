@@ -1,19 +1,3 @@
-/* mbed Microcontroller Library
- * Copyright (c) 2017-2019 ARM Limited
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #include "platform/Callback.h"
 #include "events/EventQueue.h"
 #include "ble/BLE.h"
@@ -26,18 +10,17 @@ using namespace std::literals::chrono_literals;
 /**
  * A Clock service that demonstrate the GattServer features.
  *
- * The clock service host three characteristics that model the current hour,
+ * The clock service host three characteristics that model the current
  * minute and second of the clock. The value of the second characteristic is
  * incremented automatically by the system.
  *
  * A client can subscribe to updates of the clock characteristics and get
  * notified when one of the value is changed. Clients can also change value of
- * the second, minute and hour characteristric.
+ * the second and minute characteristric.
  */
 class ClockService : public ble::GattServer::EventHandler {
 public:
     ClockService() :
-        _hour_char("485f4145-52b9-4644-af1f-7a6b9322490f", 0),
         _minute_char("0a924ca7-87cd-4699-a3bd-abdcd9cf126a", 0),
         _second_char("8dd6a1b7-bc75-4741-8a26-264af75807de", 0),
         _clock_service(
@@ -48,12 +31,10 @@ public:
         )
     {
         /* update internal pointers (value, descriptors and characteristics array) */
-        _clock_characteristics[0] = &_hour_char;
-        _clock_characteristics[1] = &_minute_char;
-        _clock_characteristics[2] = &_second_char;
+        _clock_characteristics[0] = &_minute_char;
+        _clock_characteristics[1] = &_second_char;
 
         /* setup authorization handlers */
-        _hour_char.setWriteAuthorizationCallback(this, &ClockService::authorize_client_write);
         _minute_char.setWriteAuthorizationCallback(this, &ClockService::authorize_client_write);
         _second_char.setWriteAuthorizationCallback(this, &ClockService::authorize_client_write);
     }
@@ -76,7 +57,6 @@ public:
 
         printf("clock service registered\r\n");
         printf("service handle: %u\r\n", _clock_service.getHandle());
-        printf("hour characteristic value handle %u\r\n", _hour_char.getValueHandle());
         printf("minute characteristic value handle %u\r\n", _minute_char.getValueHandle());
         printf("second characteristic value handle %u\r\n", _second_char.getValueHandle());
 
@@ -101,9 +81,8 @@ private:
         printf("data written:\r\n");
         printf("connection handle: %u\r\n", params.connHandle);
         printf("attribute handle: %u", params.handle);
-        if (params.handle == _hour_char.getValueHandle()) {
-            printf(" (hour characteristic)\r\n");
-        } else if (params.handle == _minute_char.getValueHandle()) {
+        
+        if (params.handle == _minute_char.getValueHandle()) {
             printf(" (minute characteristic)\r\n");
         } else if (params.handle == _second_char.getValueHandle()) {
             printf(" (second characteristic)\r\n");
@@ -130,9 +109,8 @@ private:
         printf("data read:\r\n");
         printf("connection handle: %u\r\n", params.connHandle);
         printf("attribute handle: %u", params.handle);
-        if (params.handle == _hour_char.getValueHandle()) {
-            printf(" (hour characteristic)\r\n");
-        } else if (params.handle == _minute_char.getValueHandle()) {
+
+        if (params.handle == _minute_char.getValueHandle()) {
             printf(" (minute characteristic)\r\n");
         } else if (params.handle == _second_char.getValueHandle()) {
             printf(" (second characteristic)\r\n");
@@ -196,13 +174,6 @@ private:
             return;
         }
 
-        if ((e->data[0] >= 60) ||
-            ((e->data[0] >= 24) && (e->handle == _hour_char.getValueHandle()))) {
-            printf("Error invalid data\r\n");
-            e->authorizationReply = AUTH_CALLBACK_REPLY_ATTERR_WRITE_NOT_PERMITTED;
-            return;
-        }
-
         e->authorizationReply = AUTH_CALLBACK_REPLY_SUCCESS;
     }
 
@@ -251,30 +222,6 @@ private:
             return;
         }
 
-        if (minute == 0) {
-            increment_hour();
-        }
-    }
-
-    /**
-     * Increment the hour counter.
-     */
-    void increment_hour(void)
-    {
-        uint8_t hour = 0;
-        ble_error_t err = _hour_char.get(*_server, hour);
-        if (err) {
-            printf("read of the hour value returned error %u\r\n", err);
-            return;
-        }
-
-        hour = (hour + 1) % 24;
-
-        err = _hour_char.set(*_server, hour);
-        if (err) {
-            printf("write of the hour value returned error %u\r\n", err);
-            return;
-        }
     }
 
 private:
@@ -347,9 +294,9 @@ private:
     events::EventQueue *_event_queue = nullptr;
 
     GattService _clock_service;
-    GattCharacteristic* _clock_characteristics[3];
 
-    ReadWriteNotifyIndicateCharacteristic<uint8_t> _hour_char;
+    GattCharacteristic* _clock_characteristics[2];
+
     ReadWriteNotifyIndicateCharacteristic<uint8_t> _minute_char;
     ReadWriteNotifyIndicateCharacteristic<uint8_t> _second_char;
 };
