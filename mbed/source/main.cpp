@@ -74,7 +74,7 @@ private:
     printf("attribute handle: %u", params.handle);
 
     if (params.handle == _set_point_char.getValueHandle()) {
-      printf(" (minute characteristic)\r\n");
+      printf(" (set_point characteristic)\r\n");
     } else {
       printf("\r\n");
     }
