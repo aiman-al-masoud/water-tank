@@ -15,15 +15,15 @@ public:
   WaterTankService()
       : _set_point_char("0a924ca7-87cd-4699-a3bd-abdcd9cf126a", 0),
         _current_level_char("8dd6a1b7-bc75-4741-8a26-264af75807de", 0),
-        _clock_service(
+        _water_tank_service(
             /* uuid */ "51311102-030e-485f-b122-f8f381aa84ed",
-            /* characteristics */ _clock_characteristics,
-            /* numCharacteristics */ sizeof(_clock_characteristics) /
-                sizeof(_clock_characteristics[0])) {
+            /* characteristics */ _water_tank_characteristics,
+            /* numCharacteristics */ sizeof(_water_tank_characteristics) /
+                sizeof(_water_tank_characteristics[0])) {
     /* update internal pointers (value, descriptors and characteristics array)
      */
-    _clock_characteristics[0] = &_set_point_char;
-    _clock_characteristics[1] = &_current_level_char;
+    _water_tank_characteristics[0] = &_set_point_char;
+    _water_tank_characteristics[1] = &_current_level_char;
 
     /* setup authorization handlers */
     _set_point_char.setWriteAuthorizationCallback(
@@ -35,7 +35,7 @@ public:
     _event_queue = &event_queue;
 
     printf("Registering demo service\r\n");
-    ble_error_t err = _server->addService(_clock_service);
+    ble_error_t err = _server->addService(_water_tank_service);
 
     if (err) {
       printf("Error %u during demo service registration.\r\n", err);
@@ -46,7 +46,7 @@ public:
     _server->setEventHandler(this);
 
     printf("clock service registered\r\n");
-    printf("service handle: %u\r\n", _clock_service.getHandle());
+    printf("service handle: %u\r\n", _water_tank_service.getHandle());
     printf("minute characteristic value handle %u\r\n",
            _set_point_char.getValueHandle());
     printf("second characteristic value handle %u\r\n",
@@ -237,9 +237,9 @@ private:
   GattServer *_server = nullptr;
   events::EventQueue *_event_queue = nullptr;
 
-  GattService _clock_service;
+  GattService _water_tank_service;
 
-  GattCharacteristic *_clock_characteristics[2];
+  GattCharacteristic *_water_tank_characteristics[2];
 
   ReadWriteNotifyIndicateCharacteristic<uint8_t> _set_point_char;
   ReadNotifyIndicateCharacteristic<uint8_t> _current_level_char;
