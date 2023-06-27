@@ -7,7 +7,7 @@ int WRITE_TRIGGER = 13;
 
 /* variables */
 float THRESH = 1;    // cm
-float TANK_HEIGHT = 5.8; // cm
+float TANK_HEIGHT = 10; // cm
 float setPoint = 0;    // cm
 
 void setup()
@@ -45,6 +45,8 @@ void loop()
 
     /* read current water level */
     auto currLevel = averageReadWaterLevel();
+    // Serial.println(currLevel);
+
 
     /* ****************************** */
 
@@ -52,7 +54,6 @@ void loop()
     auto error = currLevel - setPoint;
     Serial.println(error);
     // Serial.println(setPoint);
-
 
     if (abs(error) < THRESH)
     {
@@ -74,7 +75,11 @@ void loop()
     }
     /* ****************************** */
 
-    delay(10);
+    // digitalWrite(WRITE_INNER_PUMP, HIGH);
+    // digitalWrite(WRITE_OUTER_PUMP, HIGH);
+
+
+    delay(1000);
 }
 
 float readWaterLevel()
@@ -92,14 +97,15 @@ float readWaterLevel()
 
 float averageReadWaterLevel()
 {
-    // int numberReadings = 20;
-    int numberReadings = 5;
+    int cycle = 1000;
+    int numberReadings = 20;
     float sum = 0;
+    int delay =  50; //cycle/numberReadings;
 
     for (int i = 0; i < numberReadings; i++)
     {
         sum += readWaterLevel();
-        delay(1);
+        delay(delay);
     }
 
     return sum / numberReadings;
