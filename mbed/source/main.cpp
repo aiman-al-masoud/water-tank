@@ -1,11 +1,51 @@
+#include "DigitalIn.h"
+#include "DigitalOut.h"
+#include "PinNameAliases.h"
+#include "ThisThread.h"
 #include "ble/BLE.h"
 #include "events/EventQueue.h"
 #include "gatt_server_process.h"
 #include "mbed-trace/mbed_trace.h"
 #include "platform/Callback.h"
+#include <cstdio>
 
 using mbed::callback;
 using namespace std::literals::chrono_literals;
+
+/* variables */
+float THRESH = 1;       // cm
+float TANK_HEIGHT = 10; // cm
+float setPoint = 0;     // cm
+
+/* ports */
+// DigitalOut innerPump(D7);
+// DigitalOut outerPump(D2);
+DigitalOut trigger(D6);
+DigitalIn echo(D7);
+
+/* timer */
+Timer timer;
+float currLevel;
+
+double readCurrentLevel() {
+  printf("called readCurrentLevel()\n");
+  currLevel ++;
+  return 0;
+//   trigger = 1;
+//   timer.reset();
+//   wait_us(10.0);
+//   trigger = 0;
+//   while (echo == 0);
+//   timer.start();
+//   trigger = 0;
+//   printf("started timer!\n");
+//   while (echo == 1);
+//   timer.stop();
+//   printf("stopped timer!\n");
+//   auto distance = timer.read_us() / 58.2;
+//   printf("read distance %d!\n", (int)(100 * distance));
+//   return TANK_HEIGHT - distance;
+}
 
 /**
  *
@@ -169,16 +209,11 @@ private:
    * Increment the second counter.
    */
   void check_current_level(void) {
-    uint8_t second = 0;
-    ble_error_t err = _current_level_char.get(*_server, second);
-    if (err) {
-      printf("read of the second value returned error %u\r\n", err);
-      return;
-    }
 
-    second = (second + 1) % 60;
+    auto curLevelLev = (int)(100 * currLevel);
+    printf("hello curr level %d\n", curLevelLev);
+    ble_error_t err = _current_level_char.set(*_server, curLevelLev);
 
-    err = _current_level_char.set(*_server, second);
     if (err) {
       printf("write of the second value returned error %u\r\n", err);
       return;
@@ -245,11 +280,22 @@ private:
   ReadNotifyIndicateCharacteristic<uint8_t> _current_level_char;
 };
 
+void readPeriodically() {
+  while (true) {
+    readCurrentLevel();
+    ThisThread::sleep_for(1s);
+  }
+}
+
+Thread readThread;
+
 int main() {
+
   mbed_trace_init();
 
   BLE &ble = BLE::Instance();
   events::EventQueue event_queue;
+
   WaterTankService demo_service;
 
   /* this process will handle basic ble setup and advertising for us */
@@ -258,7 +304,10 @@ int main() {
   /* once it's done it will let us continue with our demo */
   ble_process.on_init(callback(&demo_service, &WaterTankService::start));
 
+  readThread.start(readPeriodically);
+  printf("after readPeriodically start()\n");
   ble_process.start();
+  printf("after ble_process start()\n");
 
   return 0;
 }
