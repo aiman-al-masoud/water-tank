@@ -16,35 +16,41 @@ using namespace std::literals::chrono_literals;
 float THRESH = 1;       // cm
 float TANK_HEIGHT = 10; // cm
 float setPoint = 0;     // cm
+float currLevel = 0;    // cm
 
 /* ports */
-// DigitalOut innerPump(D7);
-// DigitalOut outerPump(D2);
 DigitalOut trigger(D6);
 DigitalIn echo(D7);
+// DigitalOut innerPump(...); //TODO
+// DigitalOut outerPump(...); //TODO
 
 /* timer */
 Timer timer;
-float currLevel;
+Thread readThread;
 
-double readCurrentLevel() {
-  printf("called readCurrentLevel()\n");
-  currLevel ++;
-  return 0;
+/**
+ * https://os.mbed.com/components/HC-SR04/
+ */
+void readCurrentLevel() {
+    printf("Called readCurrentLevel()!\n");
 //   trigger = 1;
 //   timer.reset();
 //   wait_us(10.0);
 //   trigger = 0;
-//   while (echo == 0);
+//   while (!echo);
 //   timer.start();
 //   trigger = 0;
-//   printf("started timer!\n");
-//   while (echo == 1);
+//   while (echo);
 //   timer.stop();
-//   printf("stopped timer!\n");
 //   auto distance = timer.read_us() / 58.2;
-//   printf("read distance %d!\n", (int)(100 * distance));
-//   return TANK_HEIGHT - distance;
+//   currLevel = TANK_HEIGHT - distance;
+}
+
+void readPeriodically() {
+  while (true) {
+    readCurrentLevel();
+    ThisThread::sleep_for(1s);
+  }
 }
 
 /**
@@ -87,9 +93,9 @@ public:
 
     printf("clock service registered\r\n");
     printf("service handle: %u\r\n", _water_tank_service.getHandle());
-    printf("minute characteristic value handle %u\r\n",
+    printf("set_point characteristic value handle %u\r\n",
            _set_point_char.getValueHandle());
-    printf("second characteristic value handle %u\r\n",
+    printf("current_level characteristic value handle %u\r\n",
            _current_level_char.getValueHandle());
 
     _event_queue->call_every(
@@ -140,9 +146,9 @@ private:
     printf("attribute handle: %u", params.handle);
 
     if (params.handle == _set_point_char.getValueHandle()) {
-      printf(" (minute characteristic)\r\n");
+      printf(" (set_point characteristic)\r\n");
     } else if (params.handle == _current_level_char.getValueHandle()) {
-      printf(" (second characteristic)\r\n");
+      printf(" (current_level characteristic)\r\n");
     } else {
       printf("\r\n");
     }
@@ -206,13 +212,11 @@ private:
   }
 
   /**
-   * Increment the second counter.
+   * Updates the current water level characteristic periodically.
    */
   void check_current_level(void) {
 
-    auto curLevelLev = (int)(100 * currLevel);
-    printf("hello curr level %d\n", curLevelLev);
-    ble_error_t err = _current_level_char.set(*_server, curLevelLev);
+    ble_error_t err = _current_level_char.set(*_server, currLevel);
 
     if (err) {
       printf("write of the second value returned error %u\r\n", err);
@@ -271,23 +275,11 @@ private:
 private:
   GattServer *_server = nullptr;
   events::EventQueue *_event_queue = nullptr;
-
   GattService _water_tank_service;
-
   GattCharacteristic *_water_tank_characteristics[2];
-
   ReadWriteNotifyIndicateCharacteristic<uint8_t> _set_point_char;
   ReadNotifyIndicateCharacteristic<uint8_t> _current_level_char;
 };
-
-void readPeriodically() {
-  while (true) {
-    readCurrentLevel();
-    ThisThread::sleep_for(1s);
-  }
-}
-
-Thread readThread;
 
 int main() {
 
@@ -295,7 +287,6 @@ int main() {
 
   BLE &ble = BLE::Instance();
   events::EventQueue event_queue;
-
   WaterTankService demo_service;
 
   /* this process will handle basic ble setup and advertising for us */
@@ -305,9 +296,6 @@ int main() {
   ble_process.on_init(callback(&demo_service, &WaterTankService::start));
 
   readThread.start(readPeriodically);
-  printf("after readPeriodically start()\n");
   ble_process.start();
-  printf("after ble_process start()\n");
-
   return 0;
 }
