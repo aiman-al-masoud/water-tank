@@ -8,25 +8,23 @@
 #include "mbed-trace/mbed_trace.h"
 #include "platform/Callback.h"
 #include <cstdio>
+#include <cstdlib>
 
 using mbed::callback;
 using namespace std::literals::chrono_literals;
 
 /* variables */
-float THRESH = 1;       // cm
-float TANK_HEIGHT = 10; // cm
-float setPoint = 0;     // cm
-float currLevel = 0;    // cm
+float THRESH = 1.0;          // cm
+float TANK_HEIGHT = 10.0;    // cm
+float setPoint = 0.0;        // cm
+float currLevel = 0.0;       // cm
+float waterLevelError = 0.0; // cm
 
 /* ports */
 DigitalOut trigger(D6);
-// DigitalIn echo(D7);
-// DigitalIn echo(D5);
 DigitalIn echo(D10);
-
-
-// DigitalOut innerPump(...); //TODO
-// DigitalOut outerPump(...); //TODO
+DigitalOut innerPump(D4);
+DigitalOut outerPump(D5);
 
 /* timer */
 Timer timer;
@@ -36,29 +34,42 @@ Thread readThread;
  * https://os.mbed.com/components/HC-SR04/
  */
 void readCurrentLevel() {
-//   printf("Called readCurrentLevel()!\n");
-//   printf("echo before trigger %d\n", echo.read());
   timer.reset();
   trigger = 1;
-//   printf("echo during trigger %d\n", echo.read());
   wait_us(50.0);
   trigger = 0;
-  while (!echo);
-//   printf("got here here! %d\n", echo.read());
+  while (!echo)
+    ;
   timer.start();
-  while (echo);
+  while (echo)
+    ;
   timer.stop();
   auto distance = timer.read_us() / 58.2;
   currLevel = TANK_HEIGHT - distance;
-  printf("currLevel= %d!\n", (int)(10*currLevel));
-//   printf("currLevel= %f!\n", currLevel);
-
+  waterLevelError = currLevel - setPoint;
+  printf("waterLevelError= %d!\n", (int)(10 * waterLevelError));
 }
 
-void readPeriodically() {
+void commandPumps() {
+  if (abs(waterLevelError) < THRESH) {
+    printf("both pumps off!\n");
+    innerPump = 0;
+    outerPump = 0;
+  } else if (waterLevelError > 0) {
+    printf("pump water OUT!\n");
+    innerPump = 1;
+    outerPump = 0;
+  } else {
+    printf("pump water IN!\n");
+    innerPump = 0;
+    outerPump = 1;
+  }
+}
 
+void controlLoop() {
   while (true) {
     readCurrentLevel();
+    commandPumps();
     ThisThread::sleep_for(1s);
   }
 }
@@ -110,7 +121,6 @@ public:
 
     _event_queue->call_every(
         1000ms, callback(this, &WaterTankService::check_current_level));
-
   }
 
   /* GattServer::EventHandler */
@@ -144,6 +154,8 @@ private:
     for (size_t i = 0; i < params.len; ++i) {
       printf("%02X", params.data[i]);
     }
+
+    setPoint = params.data[0] / 10.0;
 
     printf("\r\n");
   }
@@ -227,7 +239,7 @@ private:
    */
   void check_current_level(void) {
 
-    ble_error_t err = _current_level_char.set(*_server, (int)(10*currLevel));
+    ble_error_t err = _current_level_char.set(*_server, (int)(10 * currLevel));
 
     if (err) {
       printf("write of the second value returned error %u\r\n", err);
@@ -306,7 +318,7 @@ int main() {
   /* once it's done it will let us continue with our demo */
   ble_process.on_init(callback(&demo_service, &WaterTankService::start));
 
-  readThread.start(readPeriodically);
+  readThread.start(controlLoop);
   ble_process.start();
   return 0;
 }
