@@ -227,7 +227,7 @@ private:
    */
   void check_current_level(void) {
 
-    ble_error_t err = _current_level_char.set(*_server, currLevel);
+    ble_error_t err = _current_level_char.set(*_server, (int)(10*currLevel));
 
     if (err) {
       printf("write of the second value returned error %u\r\n", err);
