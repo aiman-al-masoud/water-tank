@@ -50,7 +50,7 @@ void readCurrentLevel() {
   timer.stop();
   auto distance = timer.read_us() / 58.2;
   currLevel = TANK_HEIGHT - distance;
-  printf("currLevel= %d!\n", (int)(100*currLevel));
+  printf("currLevel= %d!\n", (int)(10*currLevel));
 //   printf("currLevel= %f!\n", currLevel);
 
 }
