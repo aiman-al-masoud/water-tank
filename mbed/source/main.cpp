@@ -20,7 +20,11 @@ float currLevel = 0;    // cm
 
 /* ports */
 DigitalOut trigger(D6);
-DigitalIn echo(D7);
+// DigitalIn echo(D7);
+// DigitalIn echo(D5);
+DigitalIn echo(D10);
+
+
 // DigitalOut innerPump(...); //TODO
 // DigitalOut outerPump(...); //TODO
 
@@ -32,21 +36,27 @@ Thread readThread;
  * https://os.mbed.com/components/HC-SR04/
  */
 void readCurrentLevel() {
-    printf("Called readCurrentLevel()!\n");
-//   trigger = 1;
-//   timer.reset();
-//   wait_us(10.0);
-//   trigger = 0;
-//   while (!echo);
-//   timer.start();
-//   trigger = 0;
-//   while (echo);
-//   timer.stop();
-//   auto distance = timer.read_us() / 58.2;
-//   currLevel = TANK_HEIGHT - distance;
+//   printf("Called readCurrentLevel()!\n");
+//   printf("echo before trigger %d\n", echo.read());
+  timer.reset();
+  trigger = 1;
+//   printf("echo during trigger %d\n", echo.read());
+  wait_us(50.0);
+  trigger = 0;
+  while (!echo);
+//   printf("got here here! %d\n", echo.read());
+  timer.start();
+  while (echo);
+  timer.stop();
+  auto distance = timer.read_us() / 58.2;
+  currLevel = TANK_HEIGHT - distance;
+  printf("currLevel= %d!\n", (int)(100*currLevel));
+//   printf("currLevel= %f!\n", currLevel);
+
 }
 
 void readPeriodically() {
+
   while (true) {
     readCurrentLevel();
     ThisThread::sleep_for(1s);
@@ -100,6 +110,7 @@ public:
 
     _event_queue->call_every(
         1000ms, callback(this, &WaterTankService::check_current_level));
+
   }
 
   /* GattServer::EventHandler */
