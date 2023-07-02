@@ -37,7 +37,6 @@ void loop()
     {
         delay(10);
         auto x = Serial.readString().toFloat();
-        // Serial.println(x);
         setPoint = x;
     }
 
@@ -45,39 +44,29 @@ void loop()
 
     /* read current water level */
     auto currLevel = averageReadWaterLevel();
-    // Serial.println(currLevel);
-
 
     /* ****************************** */
 
     /* recompute error and control pumps */
     auto error = currLevel - setPoint;
     Serial.println(error);
-    // Serial.println(setPoint);
 
     if (abs(error) < THRESH)
     {
-        // Serial.println("all pumps off!");
         digitalWrite(WRITE_INNER_PUMP, LOW);
         digitalWrite(WRITE_OUTER_PUMP, LOW);
     }
     else if (error > 0)
     {
-        // Serial.println("remove water!");
         digitalWrite(WRITE_INNER_PUMP, HIGH);
         digitalWrite(WRITE_OUTER_PUMP, LOW);
     }
     else
     {
-        // Serial.println("add water!");
         digitalWrite(WRITE_INNER_PUMP, LOW);
         digitalWrite(WRITE_OUTER_PUMP, HIGH);
     }
     /* ****************************** */
-
-    // digitalWrite(WRITE_INNER_PUMP, HIGH);
-    // digitalWrite(WRITE_OUTER_PUMP, HIGH);
-
 
     delay(1000);
 }
@@ -100,7 +89,7 @@ float averageReadWaterLevel()
     int cycle = 1000;
     int numberReadings = 20;
     float sum = 0;
-    int delay =  50; //cycle/numberReadings;
+    int delay =  50;
 
     for (int i = 0; i < numberReadings; i++)
     {
