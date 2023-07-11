@@ -3,16 +3,23 @@ package com.punchthrough.blestarterappandroid
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGattCharacteristic
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MenuItem
+import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import com.punchthrough.blestarterappandroid.ble.ConnectionEventListener
 import com.punchthrough.blestarterappandroid.ble.ConnectionManager
 import com.punchthrough.blestarterappandroid.ble.toHexString
-import kotlinx.android.synthetic.main.activity_ble_operations.input_set_point
 import kotlinx.android.synthetic.main.activity_ble_operations.output_water_level
+import kotlinx.android.synthetic.main.activity_ble_operations.input_set_point
+import kotlinx.android.synthetic.main.activity_ble_operations.input_tank_height
+import kotlinx.android.synthetic.main.activity_ble_operations.input_threshold
+import kotlinx.android.synthetic.main.activity_ble_operations.input_trigger_time
+
 import org.jetbrains.anko.alert
+import kotlin.math.tan
 
 class BleOperationsActivity : AppCompatActivity() {
 
@@ -22,6 +29,29 @@ class BleOperationsActivity : AppCompatActivity() {
             service.characteristics ?: listOf()
         } ?: listOf()
     }
+    private val waterLevel by lazy {
+        characteristics.find { it.uuid.toString() == "8dd6a1b7-bc75-4741-8a26-264af75807de" }!!
+    }
+
+    private val setPoint by lazy {
+        characteristics.find { it.uuid.toString() == "0a924ca7-87cd-4699-a3bd-abdcd9cf126a" }!!
+    }
+
+    private val tankHeight by lazy {
+        characteristics.find { it.uuid.toString() == "63718360-318a-4805-99a5-b7bd2593e30f" }!!
+    }
+
+    private val triggerTime by lazy {
+        characteristics.find { it.uuid.toString() == "008c2ddc-c6db-4a7f-a51c-90824bf67a56" }!!
+    }
+
+    private val threshold by lazy {
+        characteristics.find { it.uuid.toString() == "4aae2aa4-bae8-46fc-8a09-d3aec4a126d4" }!!
+    }
+
+//    private val controlLoopFreq by lazy {
+//        characteristics.find { it.uuid.toString() == "76934d79-b78d-4c31-a4f1-6434a70d2837" }!!
+//    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         ConnectionManager.registerListener(connectionEventListener)
@@ -36,26 +66,39 @@ class BleOperationsActivity : AppCompatActivity() {
             title = getString(R.string.ble_playground)
         }
 
-        val setPointCharacteristic = characteristics.find { it.uuid.toString() == "0a924ca7-87cd-4699-a3bd-abdcd9cf126a" }!!
+        ConnectionManager.readCharacteristic(device, setPoint)
+        ConnectionManager.readCharacteristic(device, tankHeight)
+        ConnectionManager.readCharacteristic(device, triggerTime)
+        ConnectionManager.readCharacteristic(device, threshold)
 
-        input_set_point.setOnKeyListener { _, keyCode, event ->
+        ConnectionManager.enableNotifications(device, waterLevel)
+        setOnEnter(input_set_point, setPoint) { it.toDouble()*10 }
+        setOnEnter(input_tank_height, tankHeight) { it.toDouble()*10 }
+        setOnEnter(input_trigger_time, triggerTime) { it.toDouble() }
+        setOnEnter(input_threshold, threshold) { it.toDouble()*10 }
+
+
+
+    }
+
+    private fun setOnEnter(inputField:EditText,  characteristic: BluetoothGattCharacteristic, preprocess:(s:String)->Double){
+        inputField.setOnKeyListener { _, keyCode, event ->
+
             if (keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_UP) {
 
-                val value = (input_set_point.text.toString().toDouble()*10).toInt()
+                val value = (preprocess(inputField.text.toString())).toInt()
 
                 ConnectionManager.writeCharacteristic(
                     device,
-                    setPointCharacteristic,
+                    characteristic,
                     byteArrayOf(value.toByte())
                 )
+
                 return@setOnKeyListener true
             }
+
             return@setOnKeyListener false
         }
-
-        val waterLevelCharacteristic = characteristics.find { it.uuid.toString() == "8dd6a1b7-bc75-4741-8a26-264af75807de" }!!
-        ConnectionManager.enableNotifications(device, waterLevelCharacteristic)
-
     }
 
     override fun onDestroy() {
@@ -92,6 +135,24 @@ class BleOperationsActivity : AppCompatActivity() {
             }
 
             onCharacteristicRead = { _, characteristic ->
+
+                runOnUiThread{
+                    when(characteristic){
+                        setPoint->{
+                            input_set_point.setText((characteristic.value[0]/10).toString())
+                        }
+                        tankHeight -> {
+                            input_tank_height.setText((characteristic.value[0]/10).toString())
+                        }
+                        triggerTime->{
+                            input_trigger_time.setText(characteristic.value[0].toString())
+                        }
+                        threshold ->{
+                            input_threshold.setText((characteristic.value[0]/10).toString())
+                        }
+                    }
+                }
+
                 log("Read from ${characteristic.uuid}: ${characteristic.value.toHexString()}")
             }
 
@@ -105,8 +166,12 @@ class BleOperationsActivity : AppCompatActivity() {
 
             onCharacteristicChanged = { _, characteristic ->
                 runOnUiThread {
-                    val v = characteristic.value[0]/10.0
-                    output_water_level.setText(v.toString())
+                    when (characteristic){
+                        waterLevel -> {
+                            val v = characteristic.value[0]/10.0
+                            output_water_level.setText(v.toString())
+                        }
+                    }
                 }
             }
 

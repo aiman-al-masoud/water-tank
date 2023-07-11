@@ -13,10 +13,15 @@
 using mbed::callback;
 using namespace std::literals::chrono_literals;
 
-/* variables */
-float THRESH = 1.0;          // cm
-float TANK_HEIGHT = 10.0;    // cm
-float setPoint = 0.0;        // cm
+/* parameters */
+float thresh = 1.0;         // cm
+float tankHeight = 11.0;    // cm
+float setPoint = 0.0;       // cm
+float inverseSpeed = 58.2;  // us/cm
+int controlLoopFreq = 2000; // ms
+int triggerTime = 100;      // us
+
+/* dependent variables */
 float currLevel = 0.0;       // cm
 float waterLevelError = 0.0; // cm
 
@@ -26,32 +31,34 @@ DigitalIn echo(D10);
 DigitalOut innerPump(D4);
 DigitalOut outerPump(D5);
 
-/* timer */
+/* utilities */
 Timer timer;
 Thread readThread;
 
 /**
- * https://os.mbed.com/components/HC-SR04/
+ * Reads the current water level and error in the controlled tank.
  */
 void readCurrentLevel() {
   timer.reset();
   trigger = 1;
-  wait_us(50.0);
+  wait_us(triggerTime);
   trigger = 0;
-  while (!echo)
-    ;
+  while (!echo);
   timer.start();
-  while (echo)
-    ;
+  while (echo);
   timer.stop();
-  auto distance = timer.read_us() / 58.2;
-  currLevel = TANK_HEIGHT - distance;
+  float distance = timer.read_us() / inverseSpeed;
+  currLevel = tankHeight - distance;
   waterLevelError = currLevel - setPoint;
+  printf("currLevel= %d!\n", (int)(10 * currLevel));
   printf("waterLevelError= %d!\n", (int)(10 * waterLevelError));
 }
 
+/**
+ * Tells the pumps what to do based on current error and threshold.
+ */
 void commandPumps() {
-  if (abs(waterLevelError) < THRESH) {
+  if (abs(waterLevelError) < thresh) {
     printf("both pumps off!\n");
     innerPump = 0;
     outerPump = 0;
@@ -70,7 +77,7 @@ void controlLoop() {
   while (true) {
     readCurrentLevel();
     commandPumps();
-    ThisThread::sleep_for(1s);
+    ThisThread::sleep_for(controlLoopFreq);
   }
 }
 
@@ -80,8 +87,16 @@ void controlLoop() {
 class WaterTankService : public ble::GattServer::EventHandler {
 public:
   WaterTankService()
-      : _set_point_char("0a924ca7-87cd-4699-a3bd-abdcd9cf126a", 0),
+      : _set_point_char("0a924ca7-87cd-4699-a3bd-abdcd9cf126a",
+                        (int)(setPoint * 10)),
         _current_level_char("8dd6a1b7-bc75-4741-8a26-264af75807de", 0),
+        _tank_height_char("63718360-318a-4805-99a5-b7bd2593e30f",
+                          (int)(tankHeight * 10)),
+        _trigger_time_char("008c2ddc-c6db-4a7f-a51c-90824bf67a56",
+                           (int)triggerTime),
+        _threshold_char("4aae2aa4-bae8-46fc-8a09-d3aec4a126d4",
+                        (int)(thresh * 10)),
+
         _water_tank_service(
             /* uuid */ "51311102-030e-485f-b122-f8f381aa84ed",
             /* characteristics */ _water_tank_characteristics,
@@ -91,6 +106,9 @@ public:
      */
     _water_tank_characteristics[0] = &_set_point_char;
     _water_tank_characteristics[1] = &_current_level_char;
+    _water_tank_characteristics[2] = &_tank_height_char;
+    _water_tank_characteristics[3] = &_trigger_time_char;
+    _water_tank_characteristics[4] = &_threshold_char;
 
     /* setup authorization handlers */
     _set_point_char.setWriteAuthorizationCallback(
@@ -138,26 +156,23 @@ private:
   void onDataWritten(const GattWriteCallbackParams &params) override {
     printf("data written:\r\n");
     printf("connection handle: %u\r\n", params.connHandle);
-    printf("attribute handle: %u", params.handle);
+    printf("attribute handle: %u\r\n", params.handle);
 
     if (params.handle == _set_point_char.getValueHandle()) {
-      printf(" (set_point characteristic)\r\n");
+      setPoint = params.data[0] / 10.0;
+      printf("user wrote: setPoint\r\n");
+    } else if (params.handle == _tank_height_char.getValueHandle()) {
+      tankHeight = params.data[0] / 10.0;
+      printf("user wrote: tankHeight\r\n");
+    } else if (params.handle == _trigger_time_char.getValueHandle()) {
+      triggerTime = params.data[0];
+      printf("user wrote: triggerTime\r\n");
+    } else if (params.handle == _threshold_char.getValueHandle()) {
+      thresh = params.data[0] / 10.0;
+      printf("user wrote: thresh\r\n");
     } else {
-      printf("\r\n");
+      printf("user attempted to write to unknown attribute\r\n");
     }
-
-    printf("write operation: %u\r\n", params.writeOp);
-    printf("offset: %u\r\n", params.offset);
-    printf("length: %u\r\n", params.len);
-    printf("data: ");
-
-    for (size_t i = 0; i < params.len; ++i) {
-      printf("%02X", params.data[i]);
-    }
-
-    setPoint = params.data[0] / 10.0;
-
-    printf("\r\n");
   }
 
   /**
@@ -299,9 +314,12 @@ private:
   GattServer *_server = nullptr;
   events::EventQueue *_event_queue = nullptr;
   GattService _water_tank_service;
-  GattCharacteristic *_water_tank_characteristics[2];
+  GattCharacteristic *_water_tank_characteristics[5];
   ReadWriteNotifyIndicateCharacteristic<uint8_t> _set_point_char;
   ReadNotifyIndicateCharacteristic<uint8_t> _current_level_char;
+  ReadWriteNotifyIndicateCharacteristic<uint8_t> _tank_height_char;
+  ReadWriteNotifyIndicateCharacteristic<uint8_t> _trigger_time_char;
+  ReadWriteNotifyIndicateCharacteristic<uint8_t> _threshold_char;
 };
 
 int main() {

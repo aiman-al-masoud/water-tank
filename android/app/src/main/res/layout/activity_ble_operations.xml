@@ -26,64 +26,135 @@
 
     <EditText
         android:id="@+id/output_water_level"
-        android:layout_width="257dp"
-        android:layout_height="85dp"
-        android:layout_marginTop="140dp"
+        android:layout_width="137dp"
+        android:layout_height="90dp"
+        android:layout_marginStart="108dp"
+        android:layout_marginTop="64dp"
         android:editable="false"
         android:ems="10"
         android:focusable="false"
         android:inputType="numberDecimal"
         android:textSize="34sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         />
 
-    <EditText
-        android:id="@+id/editTextTextPersonName"
-        android:layout_width="109dp"
-        android:layout_height="52dp"
-        android:layout_marginTop="20dp"
-        android:editable="false"
-        android:ems="10"
-        android:focusable="false"
-        android:inputType="textPersonName"
-        android:labelFor="@id/output_water_level"
-        android:text="@string/cm"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.745"
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="120dp"
+        android:layout_height="35dp"
+        android:layout_marginTop="48dp"
+        android:layout_marginEnd="28dp"
+        android:text="set point:"
+        app:layout_constraintEnd_toStartOf="@+id/input_set_point"
+        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/output_water_level"
         />
 
     <EditText
         android:id="@+id/input_set_point"
-        android:layout_width="172dp"
-        android:layout_height="61dp"
-        android:layout_marginBottom="164dp"
+        android:layout_width="71dp"
+        android:layout_height="54dp"
+        android:layout_marginTop="48dp"
+        android:layout_marginEnd="84dp"
         android:ems="10"
         android:hint="0.0"
         android:inputType="numberDecimal"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView8"
         />
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/textView4"
+        android:layout_width="120dp"
+        android:layout_height="35dp"
+        android:layout_marginTop="56dp"
+        android:layout_marginEnd="28dp"
+        android:text="trig time (us):"
+        app:layout_constraintEnd_toStartOf="@+id/input_trigger_time"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView3"
+        />
+
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="120dp"
+        android:layout_height="35dp"
+        android:layout_marginTop="36dp"
+        android:layout_marginEnd="28dp"
+        android:text="tank height:"
+        app:layout_constraintEnd_toStartOf="@+id/input_tank_height"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView"
+        />
+
+    <EditText
+        android:id="@+id/input_trigger_time"
+        android:layout_width="71dp"
+        android:layout_height="54dp"
+        android:layout_marginTop="28dp"
+        android:layout_marginEnd="84dp"
+        android:ems="10"
+        android:hint="0.0"
+        android:inputType="numberDecimal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/input_tank_height"
+        />
+
+    <EditText
+        android:id="@+id/input_tank_height"
+        android:layout_width="71dp"
+        android:layout_height="54dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="84dp"
+        android:ems="10"
+        android:hint="0.0"
+        android:inputType="numberDecimal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/input_set_point"
+        />
+
+    <EditText
+        android:id="@+id/input_threshold"
+        android:layout_width="71dp"
+        android:layout_height="54dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="84dp"
+        android:ems="10"
+        android:hint="0.0"
+        android:inputType="numberDecimal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/input_trigger_time"
+        />
+
+    <TextView
+        android:id="@+id/textView5"
+        android:layout_width="120dp"
+        android:layout_height="35dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="28dp"
+        android:text="threshold:"
+        app:layout_constraintEnd_toStartOf="@+id/input_threshold"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView4"
+        />
+
+    <TextView
+        android:id="@+id/textView8"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp"
-        android:labelFor="@id/input_set_point"
-        android:text="@string/input_new_water_level"
-        app:layout_constraintBottom_toTopOf="@+id/input_set_point"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="132dp"
+        android:text="@string/cm"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.419"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/editTextTextPersonName"
-        app:layout_constraintVertical_bias="1.0"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toEndOf="@+id/output_water_level"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
