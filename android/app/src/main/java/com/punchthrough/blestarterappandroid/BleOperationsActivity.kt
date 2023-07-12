@@ -19,16 +19,17 @@ import kotlinx.android.synthetic.main.activity_ble_operations.input_threshold
 import kotlinx.android.synthetic.main.activity_ble_operations.input_trigger_time
 
 import org.jetbrains.anko.alert
-import kotlin.math.tan
 
 class BleOperationsActivity : AppCompatActivity() {
 
     private lateinit var device: BluetoothDevice
+
     private val characteristics by lazy {
         ConnectionManager.servicesOnDevice(device)?.flatMap { service ->
             service.characteristics ?: listOf()
         } ?: listOf()
     }
+
     private val waterLevel by lazy {
         characteristics.find { it.uuid.toString() == "8dd6a1b7-bc75-4741-8a26-264af75807de" }!!
     }
@@ -49,10 +50,6 @@ class BleOperationsActivity : AppCompatActivity() {
         characteristics.find { it.uuid.toString() == "4aae2aa4-bae8-46fc-8a09-d3aec4a126d4" }!!
     }
 
-//    private val controlLoopFreq by lazy {
-//        characteristics.find { it.uuid.toString() == "76934d79-b78d-4c31-a4f1-6434a70d2837" }!!
-//    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         ConnectionManager.registerListener(connectionEventListener)
         super.onCreate(savedInstanceState)
@@ -66,18 +63,18 @@ class BleOperationsActivity : AppCompatActivity() {
             title = getString(R.string.ble_playground)
         }
 
+        /* read each characteristic for the first time */
         ConnectionManager.readCharacteristic(device, setPoint)
         ConnectionManager.readCharacteristic(device, tankHeight)
         ConnectionManager.readCharacteristic(device, triggerTime)
         ConnectionManager.readCharacteristic(device, threshold)
-
+        /* subscribe to the water level characteristic */
         ConnectionManager.enableNotifications(device, waterLevel)
+        /* set the write listeners on input views */
         setOnEnter(input_set_point, setPoint) { it.toDouble()*10 }
         setOnEnter(input_tank_height, tankHeight) { it.toDouble()*10 }
         setOnEnter(input_trigger_time, triggerTime) { it.toDouble() }
         setOnEnter(input_threshold, threshold) { it.toDouble()*10 }
-
-
 
     }
 

@@ -18,8 +18,8 @@ float thresh = 1.0;         // cm
 float tankHeight = 11.0;    // cm
 float setPoint = 0.0;       // cm
 float inverseSpeed = 58.2;  // us/cm
-int controlLoopFreq = 2000; // ms
-int triggerTime = 100;      // us
+int controlLoopFreq = 1000; // ms
+int triggerTime = 50;      // us
 
 /* dependent variables */
 float currLevel = 0.0;       // cm
