@@ -19,4 +19,10 @@
     <string name="ble_playground">Water Tank</string>
     <string name="input_new_water_level">Input new water level</string>
     <string name="cm">cm</string>
+    <string name="water_level">Water Level</string>
+    <string name="set_point">set point:</string>
+    <string name="_0_0">0.0</string>
+    <string name="trig_time_us">trig time (us):</string>
+    <string name="tank_height">tank height:</string>
+    <string name="threshold">threshold:</string>
 </resources>
